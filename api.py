@@ -222,8 +222,8 @@ def downloadImg(imgUrlList, contentPath, one_folder=False):
     downloaded_num = 0
 
     def __download_callback():
-        nonlocal downloaded_num
-        nonlocal count
+        global downloaded_num
+        global count
         downloaded_num += 1
         print('\r{}/{}... '.format(downloaded_num, count), end='')
 
