@@ -215,63 +215,6 @@ def __decode_base64_data(base64data):
     return out
 
 
-def downloadImg(imgUrlList, contentPath, one_folder=False):
-    count = len(imgUrlList)
-    print('该集漫画共计{}张图片'.format(count))
-    i = 1
-    downloaded_num = 0
-
-    def __download_callback():
-        global downloaded_num
-        global count
-        downloaded_num += 1
-        print('\r{}/{}... '.format(downloaded_num, count), end='')
-
-    download_threads = []
-    for imgUrl in imgUrlList:
-        if not one_folder:
-            imgPath = os.path.join(contentPath, '{0:0>3}.jpg'.format(i))
-        else:
-            imgPath = contentPath + '{0:0>3}.jpg'.format(i)
-        i += 1
-
-        # 目标文件存在就跳过下载
-        if os.path.isfile(imgPath):
-            count -= 1
-            continue
-        download_thread = threading.Thread(target=__download_one_img,
-                                           args=(imgUrl, imgPath, __download_callback))
-        download_threads.append(download_thread)
-        download_thread.start()
-    [t.join() for t in download_threads]
-    print('完毕!\n')
-
-
-def __download_one_img(imgUrl, imgPath, callback):
-    retry_num = 0
-    retry_max = 2
-    while True:
-        try:
-            downloadRequest = requestSession.get(imgUrl, stream=True, timeout=2)
-            print(imgUrl+"/"+imgPath)
-            with open(imgPath, 'wb') as f:
-                for chunk in downloadRequest.iter_content(chunk_size=1024):
-                    if chunk:  # filter out keep-alive new chunks
-                        f.write(chunk)
-                        f.flush()
-            callback()
-            break
-        except (KeyboardInterrupt, SystemExit):
-            print('\n\n中断下载，删除未下载完的文件！')
-            if os.path.isfile(imgPath):
-                os.remove(imgPath)
-            raise ErrorCode(3)
-        except:
-            retry_num += 1
-            if retry_num >= retry_max:
-                raise
-            print('下载失败，重试' + str(retry_num) + '次')
-            sleep(2)
 
 
 def parseLIST(lst):
