@@ -119,7 +119,7 @@ def getContent(id):
     getComicInfo = requestSession.get(getComicInfoUrl)
     comicInfoJson = getComicInfo.text
     comicInfo = json.loads(comicInfoJson)
-    print(comicInfo)
+    #print(comicInfo)
     comicName = comicInfo['title'].strip()
     comicIntrd = comicInfo['brief_intrd']
     getChapterListUrl = 'http://m.ac.qq.com/GetData/getChapterList?id={}'.format(id)
@@ -149,7 +149,7 @@ def getImgList(contentJson, comic_id):
             imgList = []
             for img_url in img_detail_json.get('picture'):
                 imgList.append(img_url['url'])
-                print(img_url['url'])
+                #print(img_url['url'])
             return imgList
             break
         except (KeyboardInterrupt, SystemExit):
