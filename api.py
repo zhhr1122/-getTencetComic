@@ -56,6 +56,17 @@ def get_task1(task_id,list):
                      'nowlist': nowlist,
                      'nextlist': nextlist}
                    )
+                   
+@app.route('/getIndex/<int:task_id>', methods=['GET'])
+def get_task2(task_id):
+    comicName, comicIntrd, count, contentList = getContent(task_id)
+    return jsonify(
+                    {'name': comicName,
+                     'introduce': comicIntrd,
+                     'count': count,
+                     'contentList': contentList
+                     }
+                   )
 
 from flask import make_response
 
