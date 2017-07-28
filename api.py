@@ -43,13 +43,13 @@ from flask import abort
 
 @app.route('/getChapterList/<int:task_id>/<int:list>', methods=['GET'])
 def get_task(task_id,list):
-    name = getChapterList(task_id,list)
-    return jsonify({'comiclist': name})
+    comiclist = getChapterList(task_id,list)
+    return jsonify({'comiclist': comiclist})
 
 @app.route('/getPreNowChapterList/<int:task_id>/<int:list>', methods=['GET'])
 def get_task1(task_id,list):
-    nowlist = getChapterList(task_id,list)
     prelist = getChapterList(task_id,(list-1))
+    nowlist = getChapterList(task_id,list)
     nextlist = getChapterList(task_id,(list+1))
     return jsonify(
                     {'prelist': prelist,
@@ -72,7 +72,8 @@ from flask import make_response
 
 @app.errorhandler(404)
 def not_found(error):
-    return make_response(jsonify({'error': 'Not found'}), 404)
+    comiclist = []
+    return jsonify({'comiclist': comiclist})
     
 class ErrorCode(Exception):
     '''自定义错误码:
@@ -262,7 +263,10 @@ def getChapterList(id,lst):
     '''url: 要爬取的漫画首页。 path: 漫画下载路径。 lst: 要下载的章节列表(-l|--list后面的参数)'''
     try:
         comicName, comicIntrd, count, contentList = getContent(id)
-        imgList = getImgList(contentList[lst], id)
+        imgList = []
+        print(len(contentList)-1)
+        if( lst>=0 and lst<len(contentList)):
+            imgList = getImgList(contentList[lst], id)
         return imgList
     except ErrorCode as e:
         return "error"
