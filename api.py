@@ -132,7 +132,7 @@ def getContent(id):
     comicInfoJson = getComicInfo.text
     comicInfo = json.loads(comicInfoJson)
     #print(comicInfo)
-    comicName = comicInfo['title'].strip()
+    comicName = "name"
     comicIntrd = comicInfo['brief_intrd']
     getChapterListUrl = 'http://m.ac.qq.com/GetData/getChapterList?id={}'.format(id)
     getChapterList = requestSession.get(getChapterListUrl)
