@@ -264,7 +264,7 @@ def getChapterList(id,lst):
     try:
         comicName, comicIntrd, count, contentList = getContent(id)
         imgList = []
-        imgList = getImgList(contentList[lst - 1]['url'])
+        imgList = getImgList(contentList[lst]['url'])
         return imgList
     except ErrorCode as e:
         return "error"
