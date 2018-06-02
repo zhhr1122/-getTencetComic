@@ -9,13 +9,13 @@ import threading
 from time import sleep
 
 import requests
+from lxml import html
 
 requestSession = requests.session()
 UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) \
       AppleWebKit/537.36 (KHTML, like Gecko) \
       Chrome/52.0.2743.82 Safari/537.36'  # Chrome on win10
 requestSession.headers.update({'User-Agent': UA})
-
 
 
 app = Flask(__name__)
@@ -125,43 +125,42 @@ def getId(url):
 
 
 def getContent(id):
-    getComicInfoUrl = 'http://m.ac.qq.com/GetData/getComicInfo?id={}'.format(id)
-    requestSession.cookies.update({'ac_refer': 'http://m.ac.qq.com'})
-    requestSession.headers.update({'Referer': 'http://m.ac.qq.com/Comic/view/id/{}/cid/1'.format(id)})
-    getComicInfo = requestSession.get(getComicInfoUrl)
-    comicInfoJson = getComicInfo.text
-    comicInfo = json.loads(comicInfoJson)
-    #print(comicInfo)
-    comicName = "name"
-    comicIntrd = comicInfo['brief_intrd']
-    getChapterListUrl = 'http://m.ac.qq.com/GetData/getChapterList?id={}'.format(id)
-    getChapterList = requestSession.get(getChapterListUrl)
-    contentJson = json.loads(getChapterList.text)
-    count = contentJson['length']
+    comic_info_page = 'https://m.ac.qq.com/comic/index/id/{}'.format(id)
+    page = requestSession.get(comic_info_page).text
+    tree = html.fromstring(page)
+    comic_name_xpath = '/html/body/article/div[1]/section[1]/div[2]/div[2]/ul/li[1]/h1/text()'
+    comicName = tree.xpath(comic_name_xpath)[0].strip()
+    comic_intro_xpath = '/html/body/article/div[2]/section[1]/div/p/text()'
+    comicIntrd = tree.xpath(comic_intro_xpath)[0].strip()
+
+    chapter_list_page = 'https://m.ac.qq.com/comic/chapterList/id/{}'.format(id)
+    page = requestSession.get(chapter_list_page).text
+    tree = html.fromstring(page)
+    chapter_list_xpath = '/html/body/section[2]/ul[2]/li/a'
+    chapter_list = tree.xpath(chapter_list_xpath)
+    count = len(chapter_list)
     sortedContentList = []
-    for i in range(count + 1):
-        for item in contentJson:
-            if isinstance(contentJson[item], dict) and contentJson[item].get('seq') == i:
-                sortedContentList.append({item: contentJson[item]})
-                break
+
+    for chapter_element in chapter_list:
+        sortedContentList.append(
+            {'name': chapter_element.text, 'url': 'https://m.ac.qq.com' + chapter_element.get('href')})
+
+    print(sortedContentList)
+
     return (comicName, comicIntrd, count, sortedContentList)
 
 
-def getImgList(contentJson, comic_id):
+def getImgList(chapter_url):
     retry_num = 0
     retry_max = 5
     while True:
         try:
-            cid = list(contentJson.keys())[0]
-            requestSession.headers.update({'Referer': 'http://ac.qq.com/Comic/comicInfo/id/{}'.format(comic_id)})
-            cid_page = requestSession.get('http://ac.qq.com/ComicView/index/id/{0}/cid/{1}'.format(comic_id, cid),
-                                          timeout=2).text
-            base64data = re.findall(r"DATA\s*=\s*'(.+?)'", cid_page)[0][1:]
+            chapter_page = requestSession.get(chapter_url, timeout=5).text
+            base64data = re.findall(r"data:\s*'(.+?)'", chapter_page)[0][1:]
             img_detail_json = json.loads(__decode_base64_data(base64data))
             imgList = []
             for img_url in img_detail_json.get('picture'):
                 imgList.append(img_url['url'])
-                #print(img_url['url'])
             return imgList
             break
         except (KeyboardInterrupt, SystemExit):
@@ -233,7 +232,7 @@ def parseLIST(lst):
     '''解析命令行中的-l|--list参数，返回解析后的章节列表'''
     legalListRE = re.compile(r'^\d+([,-]\d+)*$')
     if not legalListRE.match(lst):
-        raise LISTFormatError(lst + ' 不匹配正则: ' + r'^\d+([,-]\d+)*$')
+        raise AttributeError(lst + ' 不匹配正则: ' + r'^\d+([,-]\d+)*$')
 
     # 先逗号分割字符串，分割后的字符串再用短横杠分割
     parsedLIST = []
@@ -259,14 +258,13 @@ def parseLIST(lst):
     return parsedLIST
 
 
+
 def getChapterList(id,lst):
     '''url: 要爬取的漫画首页。 path: 漫画下载路径。 lst: 要下载的章节列表(-l|--list后面的参数)'''
     try:
         comicName, comicIntrd, count, contentList = getContent(id)
         imgList = []
-        print(len(contentList)-1)
-        if( lst>=0 and lst<len(contentList)):
-            imgList = getImgList(contentList[lst], id)
+        imgList = getImgList(contentList[lst - 1]['url'])
         return imgList
     except ErrorCode as e:
         return "error"
